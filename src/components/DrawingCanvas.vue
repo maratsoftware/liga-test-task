@@ -8,6 +8,10 @@
         @mousemove="handleMouseMove"
         @mouseup="handleMouseUp"
         @mouseleave="handleMouseLeave"
+        @touchstart="handleTouchStart"
+        @touchmove="handleTouchMove"
+        @touchend="handleTouchEnd"
+        @touchcancel="handleTouchEnd"
         class="drawing-canvas"
     ></canvas>
   </section>
@@ -36,6 +40,19 @@ function getCanvasCoordinates(event: MouseEvent | Touch): { x: number, y: number
   }
 }
 
+function getTouchCoordinates(touch: Touch): { x: number, y: number } {
+  if (!canvasRef.value) return { x: 0, y: 0 }
+
+  const rect = canvasRef.value.getBoundingClientRect()
+  const scaleX = canvasRef.value.width / rect.width
+  const scaleY = canvasRef.value.height / rect.height
+
+  return {
+    x: (touch.clientX - rect.left) * scaleX,
+    y: (touch.clientY - rect.top) * scaleY
+  }
+}
+
 function handleMouseDown(event: MouseEvent) {
   event.preventDefault()
   const { x, y } = getCanvasCoordinates(event)
@@ -56,6 +73,29 @@ function handleMouseLeave() {
   store.stopDrawing()
 }
 
+function handleTouchStart(event: TouchEvent) {
+  event.preventDefault()
+  const touch = event.touches[0]
+  if (touch) {
+    const { x, y } = getTouchCoordinates(touch)
+    store.startDrawing(x, y)
+  }
+}
+
+function handleTouchMove(event: TouchEvent) {
+  event.preventDefault()
+  const touch = event.touches[0]
+  if (touch) {
+    const { x, y } = getTouchCoordinates(touch)
+    store.draw(x, y)
+  }
+}
+
+function handleTouchEnd(event: TouchEvent) {
+  event.preventDefault()
+  store.stopDrawing()
+}
+
 watch(() => store.currentTool, () => {
   store.configureContext()
 }, { deep: true });
@@ -70,6 +110,9 @@ onMounted(() => {
       context.fillStyle = '#ffffff'
       context.fillRect(0, 0, props.width, props.height)
     }
+
+    canvasRef.value.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false })
+    canvasRef.value.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false })
   }
 });
 
