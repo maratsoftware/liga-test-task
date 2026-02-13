@@ -1,7 +1,8 @@
 {
   "name": "liga-test-task",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "author": "Marat Magomedov",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -9,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "pinia": "^3.0.4",
     "vue": "^3.5.25"
   },
   "devDependencies": {
