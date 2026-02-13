@@ -48,14 +48,15 @@ export const useDrawingStore = defineStore('drawing', () => {
     function configureContext() {
         if (!ctx.value) return
 
-        ctx.value.lineWidth = 5
         ctx.value.lineCap = 'round'
         ctx.value.lineJoin = 'round'
 
         if (currentTool.value === 'eraser') {
+            ctx.value.lineWidth = 45
             ctx.value.strokeStyle = '#ffffff'
             ctx.value.globalCompositeOperation = 'destination-out'
         } else {
+            ctx.value.lineWidth = 5
             ctx.value.strokeStyle = '#000000'
             ctx.value.globalCompositeOperation = 'source-over'
         }

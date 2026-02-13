@@ -1,16 +1,16 @@
 <template>
-  <div class="canvas-container">
+  <section class="canvas-container">
     <canvas
         ref="canvasRef"
-        v-bind:width="width"
-        v-bind:height="height"
-        v-on:mousedown="handleMouseDown"
-        v-on:mousemove="handleMouseMove"
-        v-on:mouseup="handleMouseUp"
-        v-on:mouseleave="handleMouseLeave"
+        :width="width"
+        :height="height"
+        @mousedown="handleMouseDown"
+        @mousemove="handleMouseMove"
+        @mouseup="handleMouseUp"
+        @mouseleave="handleMouseLeave"
         class="drawing-canvas"
     ></canvas>
-  </div>
+  </section>
 </template>
 
 <script setup lang="ts">
@@ -58,7 +58,7 @@ function handleMouseLeave() {
 
 watch(() => store.currentTool, () => {
   store.configureContext()
-}, { deep: true })
+}, { deep: true });
 
 onMounted(() => {
   if (canvasRef.value) {
@@ -71,19 +71,20 @@ onMounted(() => {
       context.fillRect(0, 0, props.width, props.height)
     }
   }
-})
+});
 
 onUnmounted(() => {
   store.setContext(null)
-})
+});
 </script>
 
 <style scoped>
 .canvas-container {
+  width: 100%;
+  padding: 50px;
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 20px;
 }
 
 .drawing-canvas {

@@ -1,25 +1,29 @@
 <template>
-  <div class="toolbar">
-    <button
+  <aside class="toolbar">
+    <ToolButton
+        title="Кисть"
+        :active="store.currentTool === 'brush'"
         @click="selectTool('brush')"
-        :class="{ active: store.currentTool === 'brush' }"
-        class="tool-button brush"
     >
-      Кисть
-    </button>
-    <button
+      <PaintBrush />
+    </ToolButton>
+
+    <ToolButton
+        title="Ластик"
+        :active="store.currentTool === 'eraser'"
         @click="selectTool('eraser')"
-        :class="{ active: store.currentTool === 'eraser' }"
-        class="tool-button eraser"
     >
-      Ластик
-    </button>
-  </div>
+      <Eraser />
+    </ToolButton>
+  </aside>
 </template>
 
 <script setup lang="ts">
 import { useDrawingStore } from '../stores/drawingStore'
 import type { Tool } from "../types";
+import Eraser from "../assets/icons/Eraser.vue";
+import PaintBrush from "../assets/icons/PaintBrush.vue";
+import ToolButton from "./ToolButton.vue";
 
 const store = useDrawingStore()
 
@@ -33,33 +37,21 @@ function selectTool(tool: Tool) {
 .toolbar {
   display: flex;
   gap: 10px;
-  padding: 20px;
+  padding: 10px;
   flex-direction: column;
   justify-content: center;
   background-color: var(--secondary-color);
   border-right: 1px solid var(--tertiary-color);
 }
 
-.tool-button {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 15px;
-  border-radius: 8px;
-  background-color: var(--secondary-color);
-  color: var(--button-text-color);
-  font-size: 16px;
-  cursor: pointer;
-  transition: all 0.4s ease;
-  border: 0;
-}
-
-.tool-button:hover {
-  background-color: var(--tertiary-color);
-}
-
-.tool-button.active {
-  background-color: var(--button-color);
-  color: var(--button-text-color);
+@media (max-width: 1024px) {
+  .toolbar {
+    flex-direction: row;
+    position: fixed;
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--tertiary-color);
+    bottom: 0;
+  }
 }
 </style>
