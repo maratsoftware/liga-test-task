@@ -47,11 +47,9 @@ function selectTool(tool: Tool) {
 @media (max-width: 1024px) {
   .toolbar {
     flex-direction: row;
-    position: fixed;
     width: 100%;
     border-right: none;
     border-bottom: 1px solid var(--tertiary-color);
-    bottom: 0;
   }
 }
 </style>
