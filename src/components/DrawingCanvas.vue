@@ -8,10 +8,6 @@
         @mousemove="handleMouseMove"
         @mouseup="handleMouseUp"
         @mouseleave="handleMouseLeave"
-        @touchstart="handleTouchStart"
-        @touchmove="handleTouchMove"
-        @touchend="handleTouchEnd"
-        @touchcancel="handleTouchEnd"
         class="drawing-canvas"
     ></canvas>
   </section>
@@ -29,6 +25,10 @@ const canvasWidth = ref(800)
 const canvasHeight = ref(600)
 
 let resizeObserver: ResizeObserver | null = null
+
+let touchStartHandler: ((e: TouchEvent) => void) | null = null
+let touchMoveHandler: ((e: TouchEvent) => void) | null = null
+let touchEndHandler: ((e: TouchEvent) => void) | null = null
 
 function updateCanvasSize() {
   if (!containerRef.value) return
@@ -114,29 +114,6 @@ function handleMouseLeave() {
   store.stopDrawing()
 }
 
-function handleTouchStart(event: TouchEvent) {
-  event.preventDefault()
-  const touch = event.touches[0]
-  if (touch) {
-    const { x, y } = getTouchCoordinates(touch)
-    store.startDrawing(x, y)
-  }
-}
-
-function handleTouchMove(event: TouchEvent) {
-  event.preventDefault()
-  const touch = event.touches[0]
-  if (touch) {
-    const { x, y } = getTouchCoordinates(touch)
-    store.draw(x, y)
-  }
-}
-
-function handleTouchEnd(event: TouchEvent) {
-  event.preventDefault()
-  store.stopDrawing()
-}
-
 watch(() => store.currentTool, () => {
   store.configureContext()
 }, { deep: true })
@@ -153,12 +130,49 @@ onMounted(() => {
   }
 
   if (canvasRef.value) {
-    canvasRef.value.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false })
-    canvasRef.value.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false })
+    const canvas = canvasRef.value
+
+    touchStartHandler = (e: TouchEvent) => {
+      if (e.cancelable) e.preventDefault()
+      const touch = e.touches[0]
+      if (touch) {
+        const { x, y } = getTouchCoordinates(touch)
+        store.startDrawing(x, y)
+      }
+    }
+
+    touchMoveHandler = (e: TouchEvent) => {
+      if (e.cancelable) e.preventDefault()
+      const touch = e.touches[0]
+      if (touch) {
+        const { x, y } = getTouchCoordinates(touch)
+        store.draw(x, y)
+      }
+    }
+
+    touchEndHandler = (e: TouchEvent) => {
+      if (e.cancelable) e.preventDefault()
+      store.stopDrawing()
+    }
+
+    canvas.addEventListener('touchstart', touchStartHandler, { passive: false })
+    canvas.addEventListener('touchmove', touchMoveHandler, { passive: false })
+    canvas.addEventListener('touchend', touchEndHandler, { passive: false })
+    canvas.addEventListener('touchcancel', touchEndHandler, { passive: false })
   }
 })
 
 onUnmounted(() => {
+  if (canvasRef.value) {
+    const canvas = canvasRef.value
+    if (touchStartHandler) canvas.removeEventListener('touchstart', touchStartHandler)
+    if (touchMoveHandler) canvas.removeEventListener('touchmove', touchMoveHandler)
+    if (touchEndHandler) {
+      canvas.removeEventListener('touchend', touchEndHandler)
+      canvas.removeEventListener('touchcancel', touchEndHandler)
+    }
+  }
+
   if (resizeObserver) {
     resizeObserver.disconnect()
     resizeObserver = null
