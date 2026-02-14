@@ -1,31 +1,72 @@
 <template>
-  <section class="canvas-container">
+  <section class="canvas-container" ref="containerRef">
     <canvas
         ref="canvasRef"
-        :width="width"
-        :height="height"
+        :width="canvasWidth"
+        :height="canvasHeight"
         @mousedown="handleMouseDown"
         @mousemove="handleMouseMove"
         @mouseup="handleMouseUp"
         @mouseleave="handleMouseLeave"
-        @touchstart="handleTouchStart"
-        @touchmove="handleTouchMove"
-        @touchend="handleTouchEnd"
-        @touchcancel="handleTouchEnd"
         class="drawing-canvas"
     ></canvas>
   </section>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useDrawingStore } from '../stores/drawingStore'
-import type { Canvas } from "../types";
 
-const props = defineProps<Canvas>();
-
+const containerRef = ref<HTMLElement | null>(null)
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 const store = useDrawingStore()
+
+const canvasWidth = ref(800)
+const canvasHeight = ref(600)
+
+let resizeObserver: ResizeObserver | null = null
+
+let touchStartHandler: ((e: TouchEvent) => void) | null = null
+let touchMoveHandler: ((e: TouchEvent) => void) | null = null
+let touchEndHandler: ((e: TouchEvent) => void) | null = null
+
+function updateCanvasSize() {
+  if (!containerRef.value) return
+
+  const rect = containerRef.value.getBoundingClientRect()
+  const newWidth = Math.floor(rect.width)
+  const newHeight = Math.floor(rect.height)
+
+  if (newWidth === canvasWidth.value && newHeight === canvasHeight.value) return
+
+  let imageData: ImageData | null = null
+  if (canvasRef.value && store.isContextSet) {
+    const ctx = canvasRef.value.getContext('2d')
+    if (ctx) {
+      imageData = ctx.getImageData(0, 0, canvasWidth.value, canvasHeight.value)
+    }
+  }
+
+  canvasWidth.value = newWidth
+  canvasHeight.value = newHeight
+
+  nextTick(() => {
+    if (canvasRef.value) {
+      const context = canvasRef.value.getContext('2d')
+      if (context) {
+        context.fillStyle = '#ffffff'
+        context.fillRect(0, 0, newWidth, newHeight)
+
+        if (imageData) {
+          context.putImageData(imageData, 0, 0)
+        }
+
+        store.setContext(context)
+        store.configureContext()
+      }
+    }
+  })
+}
 
 function getCanvasCoordinates(event: MouseEvent | Touch): { x: number, y: number } {
   if (!canvasRef.value) return { x: 0, y: 0 }
@@ -73,71 +114,113 @@ function handleMouseLeave() {
   store.stopDrawing()
 }
 
-function handleTouchStart(event: TouchEvent) {
-  event.preventDefault()
-  const touch = event.touches[0]
-  if (touch) {
-    const { x, y } = getTouchCoordinates(touch)
-    store.startDrawing(x, y)
-  }
-}
-
-function handleTouchMove(event: TouchEvent) {
-  event.preventDefault()
-  const touch = event.touches[0]
-  if (touch) {
-    const { x, y } = getTouchCoordinates(touch)
-    store.draw(x, y)
-  }
-}
-
-function handleTouchEnd(event: TouchEvent) {
-  event.preventDefault()
-  store.stopDrawing()
-}
-
 watch(() => store.currentTool, () => {
   store.configureContext()
-}, { deep: true });
+}, { deep: true })
 
 onMounted(() => {
-  if (canvasRef.value) {
-    const context = canvasRef.value.getContext('2d')
-    store.setContext(context)
-    store.configureContext()
+  updateCanvasSize()
 
-    if (context) {
-      context.fillStyle = '#ffffff'
-      context.fillRect(0, 0, props.width, props.height)
+  resizeObserver = new ResizeObserver(() => {
+    updateCanvasSize()
+  })
+
+  if (containerRef.value) {
+    resizeObserver.observe(containerRef.value)
+  }
+
+  if (canvasRef.value) {
+    const canvas = canvasRef.value
+
+    touchStartHandler = (e: TouchEvent) => {
+      if (e.cancelable) e.preventDefault()
+      const touch = e.touches[0]
+      if (touch) {
+        const { x, y } = getTouchCoordinates(touch)
+        store.startDrawing(x, y)
+      }
     }
 
-    canvasRef.value.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false })
-    canvasRef.value.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false })
+    touchMoveHandler = (e: TouchEvent) => {
+      if (e.cancelable) e.preventDefault()
+      const touch = e.touches[0]
+      if (touch) {
+        const { x, y } = getTouchCoordinates(touch)
+        store.draw(x, y)
+      }
+    }
+
+    touchEndHandler = (e: TouchEvent) => {
+      if (e.cancelable) e.preventDefault()
+      store.stopDrawing()
+    }
+
+    canvas.addEventListener('touchstart', touchStartHandler, { passive: false })
+    canvas.addEventListener('touchmove', touchMoveHandler, { passive: false })
+    canvas.addEventListener('touchend', touchEndHandler, { passive: false })
+    canvas.addEventListener('touchcancel', touchEndHandler, { passive: false })
   }
-});
+})
 
 onUnmounted(() => {
+  if (canvasRef.value) {
+    const canvas = canvasRef.value
+    if (touchStartHandler) canvas.removeEventListener('touchstart', touchStartHandler)
+    if (touchMoveHandler) canvas.removeEventListener('touchmove', touchMoveHandler)
+    if (touchEndHandler) {
+      canvas.removeEventListener('touchend', touchEndHandler)
+      canvas.removeEventListener('touchcancel', touchEndHandler)
+    }
+  }
+
+  if (resizeObserver) {
+    resizeObserver.disconnect()
+    resizeObserver = null
+  }
   store.setContext(null)
-});
+})
 </script>
 
 <style scoped>
 .canvas-container {
   width: 100%;
-  padding: 50px;
+  height: 100%;
   display: flex;
   justify-content: center;
   align-items: center;
+  overflow: hidden;
+  box-sizing: border-box;
+  padding: 50px;
 }
 
 .drawing-canvas {
-  border: 1px solid #ccc;
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 1px solid var(--canvas-border-color);
   border-radius: 4px;
   cursor: crosshair;
-  background-color: white;
+  background-color: var(--canvas-background-color);
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  max-width: 100%;
-  height: auto;
   touch-action: none;
+  box-sizing: border-box;
+}
+
+@media (max-width: 1024px) {
+  .canvas-container {
+    padding: 40px;
+  }
+}
+
+@media (max-width: 768px) {
+  .canvas-container {
+    padding: 30px;
+  }
+}
+
+@media (max-width: 480px) {
+  .canvas-container {
+    padding: 20px;
+  }
 }
 </style>

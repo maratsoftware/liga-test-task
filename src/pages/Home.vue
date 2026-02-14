@@ -1,7 +1,7 @@
 <template>
   <main>
     <Toolbar />
-    <DrawingCanvas :width="1200" :height="800" />
+    <DrawingCanvas />
   </main>
 </template>
 
@@ -25,5 +25,11 @@ main {
   height: 100vh;
   display: flex;
   flex-flow: row nowrap;
+}
+
+@media (max-width: 1024px) {
+  main {
+    flex-flow: column-reverse nowrap;
+  }
 }
 </style>

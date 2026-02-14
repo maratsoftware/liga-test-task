@@ -6,4 +6,7 @@
     --primary-color: #1b1b1b;
     --secondary-color: #272727;
     --tertiary-color: #434343;
+
+    --canvas-background-color: #ffffff;
+    --canvas-border-color: #cccccc;
 }

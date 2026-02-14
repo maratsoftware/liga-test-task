@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import type { Tool } from "../types";
 
 export const useDrawingStore = defineStore('drawing', () => {
@@ -8,6 +8,8 @@ export const useDrawingStore = defineStore('drawing', () => {
     const lastX = ref(0);
     const lastY = ref(0);
     const ctx = ref<CanvasRenderingContext2D | null>(null);
+
+    const isContextSet = computed(() => ctx.value !== null)
 
     function setTool(tool: Tool) {
         currentTool.value = tool
@@ -65,6 +67,7 @@ export const useDrawingStore = defineStore('drawing', () => {
     return {
         currentTool,
         isDrawing,
+        isContextSet,
         setTool,
         setContext,
         startDrawing,
